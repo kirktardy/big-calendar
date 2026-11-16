@@ -164,6 +164,10 @@ body{background:color-mix(in srgb,var(--bg) 92%,#000)}
 
 <button type="button" class="scrim" id="scrim" aria-label="Close"></button>
 <div class="menu glass-sheet" id="menu" role="menu">
+<button type="button" class="mi" role="menuitemradio" id="m-v-full"><span class="ck"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span>Full Labels</span></button>
+<button type="button" class="mi" role="menuitemradio" id="m-v-clip"><span class="ck"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span>Clip to Days</span></button>
+<button type="button" class="mi" role="menuitemradio" id="m-v-dots"><span class="ck"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span>Dots Only</span></button>
+<div class="sep"></div>
 <button type="button" class="mi" role="menuitemcheckbox" id="m-dow"><span class="ck"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span>Weekday Letters</span></button>
 <div class="sep"></div>
 <button type="button" class="mi" role="menuitemcheckbox" id="m-wknd"><span class="ck"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span>Shade Weekends</span></button>
@@ -192,13 +196,16 @@ body{background:color-mix(in srgb,var(--bg) 92%,#000)}
   var MS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   var WD = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   var ICON_DOTS = '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5.5" cy="12" r="2.4"/><circle cx="12" cy="12" r="2.4"/><circle cx="18.5" cy="12" r="2.4"/></svg>';
+  var ICON_CLIP = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M3.5 7h6M14.5 7h6M3.5 12h3M11.5 12h9M3.5 17h10M18.5 17h2"/></svg>';
+  var MODES = ['full', 'clip', 'dots'], MODE_NAME = { full: 'Full labels', clip: 'Clip to days', dots: 'Dots only' };
+  function viewMode() { return prefs.compact ? 'dots' : prefs.clip ? 'clip' : 'full'; }
   var ICON_BARS = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 7h13M4 12h9M8 17h12"/></svg>';
 
   function $(id) { return document.getElementById(id); }
   var scroller = $('scroller'), weeksEl = $('weeks'), sheet = $('sheet'), scrim = $('scrim'), menu = $('menu');
 
   var events = [];
-  var prefs = { compact: false, dow: true, wknd: false };
+  var prefs = { compact: false, clip: false, dow: true, wknd: false };
   try { var lp = JSON.parse(localStorage.getItem('bigcal-prefs') || 'null'); if (lp && typeof lp === 'object') Object.assign(prefs, lp); } catch (e) {}
   var conn = null;
   try { conn = JSON.parse(localStorage.getItem('bigcal-conn') || 'null'); } catch (e) {}
@@ -270,13 +277,14 @@ body{background:color-mix(in srgb,var(--bg) 92%,#000)}
         sg.barW = (sg.b - sg.a + 1) * colW - 6;
         var tw = textW(sg.x.t), roomR = width - sg.left - 2;
         sg.barLeft = sg.left; sg.flip = false;
-        if (tw > sg.barW && tw > roomR) {
+        if (prefs.clip) sg.visW = sg.barW;
+        else if (tw > sg.barW && tw > roomR) {
           var right = sg.left + sg.barW, roomL = right - 2;
           if (roomL > roomR) { sg.flip = true; sg.visW = Math.min(tw, roomL); sg.left = right - sg.visW; }
           else sg.visW = roomR;
         } else sg.visW = Math.min(Math.max(sg.barW, tw), roomR);
         var visStart = sg.flip ? ws + Math.max(0, Math.floor((sg.left - 3) / colW)) : sg.a;
-        var visEnd = sg.flip ? sg.b : ws + Math.min(6, Math.floor((sg.left + sg.visW + 3) / colW));
+        var visEnd = (sg.flip || prefs.clip) ? sg.b : ws + Math.min(6, Math.floor((sg.left + sg.visW + 3) / colW));
         var L = 0; while (laneEnd[L] != null && laneEnd[L] >= visStart) L++;
         laneEnd[L] = Math.max(sg.b, visEnd); sg.L = L; used = Math.max(used, L + 1);
       });
@@ -654,9 +662,10 @@ body{background:color-mix(in srgb,var(--bg) 92%,#000)}
     document.body.classList.toggle('wknd', !!prefs.wknd);
     $('m-dow').setAttribute('aria-checked', String(!!prefs.dow));
     $('m-wknd').setAttribute('aria-checked', String(!!prefs.wknd));
-    var v = $('b-view');
-    v.innerHTML = prefs.compact ? ICON_BARS : ICON_DOTS;
-    v.setAttribute('aria-label', prefs.compact ? 'Show event bars' : 'Collapse to dots');
+    var m = viewMode(), v = $('b-view');
+    v.innerHTML = m === 'dots' ? ICON_DOTS : m === 'clip' ? ICON_CLIP : ICON_BARS;
+    v.setAttribute('aria-label', 'View: ' + MODE_NAME[m] + '. Tap to switch to ' + MODE_NAME[MODES[(MODES.indexOf(m) + 1) % 3]]);
+    MODES.forEach(function (k) { $('m-v-' + k).setAttribute('aria-checked', String(k === m)); });
   }
   function savePrefs() {
     try { localStorage.setItem('bigcal-prefs', JSON.stringify(prefs)); } catch (e) {}
@@ -667,7 +676,9 @@ body{background:color-mix(in srgb,var(--bg) 92%,#000)}
 
   $('b-today').addEventListener('click', function () { closeAll(); goToday(true); });
   $('b-add').addEventListener('click', function () { openForm(null, null); });
-  $('b-view').addEventListener('click', function () { closeAll(); setPref('compact', !prefs.compact); });
+  function setMode(m) { prefs.compact = m === 'dots'; prefs.clip = m === 'clip'; applyPrefs(); renderKeep(); savePrefs(); }
+  $('b-view').addEventListener('click', function () { closeAll(); var m = viewMode(); setMode(MODES[(MODES.indexOf(m) + 1) % 3]); toast(MODE_NAME[viewMode()]); });
+  MODES.forEach(function (k) { $('m-v-' + k).addEventListener('click', function () { setMode(k); }); });
   $('b-more').addEventListener('click', function () {
     if (mode === 'menu') { closeAll(); return; }
     closeAll(); mode = 'menu'; menu.classList.add('on'); scrim.classList.add('on');
