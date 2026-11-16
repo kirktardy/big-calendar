@@ -33,7 +33,7 @@ body.nodow #weeks{padding-top:calc(env(safe-area-inset-top) + 6px)}
 .mrow{display:flex;align-items:baseline;gap:6px;padding:16px 4px 4px}
 .mrow b{font-size:15px;font-weight:800;color:var(--accent);letter-spacing:-.01em}
 .mrow span{font-size:13px;font-weight:600;color:var(--muted)}
-.week{position:relative;display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.week{position:relative;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));content-visibility:auto;contain-intrinsic-size:auto 32px}
 .day{position:relative;display:block;min-width:0;height:100%;padding:0;margin:0;border:0;background:transparent;text-align:left;cursor:pointer}
 .day:active{background:color-mix(in srgb,var(--fg) 7%,transparent)}
 body.wknd .day.we{background:var(--wknd)}
@@ -201,7 +201,8 @@ textarea{min-height:64px;resize:vertical}
   var now = new Date();
   var today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / DAY;
   var baseY = now.getFullYear(), baseM = now.getMonth();
-  var range = { from: -2, to: 6 };
+  var RANGE0 = { from: -24, to: 36 };
+  var range = { from: RANGE0.from, to: RANGE0.to };
 
   function toN(s) { var p = String(s).split('-'); return Date.UTC(+p[0], +p[1] - 1, +p[2]) / DAY; }
   function toS(n) { return new Date(n * DAY).toISOString().slice(0, 10); }
@@ -313,24 +314,20 @@ textarea{min-height:64px;resize:vertical}
   }
   function goToday(smooth) {
     var el = weeksEl.querySelector('.day.today');
-    if (!el) { range = { from: -2, to: 6 }; render(); el = weeksEl.querySelector('.day.today'); }
+    if (!el) { range = { from: RANGE0.from, to: RANGE0.to }; render(); el = weeksEl.querySelector('.day.today'); }
     if (!el) return;
     var y = el.getBoundingClientRect().top + scroller.scrollTop - topEdge() - 70;
     if (smooth) window.scrollTo({ top: y, behavior: 'smooth' }); else window.scrollTo(0, y);
   }
 
-  var busy = false;
-  window.addEventListener('scroll', function () {
-    if (busy) return;
+  // Extend the range only once scrolling has settled, so momentum is never interrupted.
+  var settle = null;
+  function checkEdges() {
     var st = scroller.scrollTop;
-    if (st < 500) {
-      busy = true; range.from -= 3; renderKeep();
-      setTimeout(function () { busy = false; }, 80);
-    } else if (scroller.scrollHeight - st - window.innerHeight < 700) {
-      busy = true; range.to += 3; renderKeep();
-      setTimeout(function () { busy = false; }, 80);
-    }
-  }, { passive: true });
+    if (st < 1500) { range.from -= 12; renderKeep(); }
+    else if (scroller.scrollHeight - st - window.innerHeight < 1500) { range.to += 12; renderKeep(); }
+  }
+  window.addEventListener('scroll', function () { clearTimeout(settle); settle = setTimeout(checkEdges, 220); }, { passive: true });
   var rt = null;
   window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(renderKeep, 120); });
 
