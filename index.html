@@ -681,6 +681,17 @@ textarea{min-height:64px;resize:vertical}
   applyPrefs();
   render();
   goToday(false);
+  (function () {
+    // Personal setup link: #url=<script exec url>&key=<key>. Never sent to the server.
+    try {
+      var hp = new URLSearchParams(location.hash.slice(1));
+      var hu = hp.get('url'), hk = hp.get('key');
+      var c = hu && hk ? parseCode(hu + '#' + hk) : null;
+      if (c && (!conn || conn.url !== c.url || conn.key !== c.key)) {
+        conn = c; try { localStorage.setItem('bigcal-conn', JSON.stringify(c)); } catch (e) {}
+      }
+    } catch (e) {}
+  })();
   if (!conn) showSetup('');
   else { flush(); pull(true); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden && conn) { flush(); if (!lastSync || Date.now() - lastSync > 20000) pull(true); } });
