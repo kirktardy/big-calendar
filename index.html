@@ -21,9 +21,10 @@
 --glass:rgba(44,44,48,.55);--glass-b:rgba(255,255,255,.14);--glass-sh:0 8px 28px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.12);
 --bar:rgba(20,20,22,.64);--sheet:rgba(36,36,40,.88);--sheet-b:rgba(255,255,255,.12)}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;overflow:hidden}
+html,body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif}
+html{overscroll-behavior-y:none}
 button,input,textarea{font:inherit;color:inherit}
-#scroller{position:fixed;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+#scroller{position:relative;min-height:100vh}
 .dow{position:sticky;top:0;z-index:3;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));padding:calc(env(safe-area-inset-top) + 12px) max(16px, env(safe-area-inset-right)) 8px max(16px, env(safe-area-inset-left));font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--muted);background:var(--bar);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border-bottom:.5px solid var(--line)}
 .dow span{text-align:center}
 body.nodow .dow{display:none}
@@ -65,8 +66,9 @@ body.wknd .day.we{background:var(--wknd)}
 .scrim{position:fixed;inset:0;z-index:8;border:0;padding:0;background:transparent;display:none}
 .scrim.on{display:block}
 .scrim.dim{background:rgba(0,0,0,.32)}
-.sheet{position:fixed;left:8px;right:8px;bottom:calc(env(safe-area-inset-bottom) + 8px);max-width:520px;margin:0 auto;max-height:82dvh;overflow:auto;border-radius:34px;padding:8px 20px 22px;z-index:10;transform:translateY(115%);transition:transform .28s cubic-bezier(.2,.8,.2,1)}
-.sheet.on{transform:none}
+.sheet{position:fixed;left:8px;right:8px;bottom:calc(env(safe-area-inset-bottom) + 8px);max-width:520px;margin:0 auto;max-height:82dvh;overflow:auto;border-radius:34px;padding:8px 20px 22px;z-index:10}
+.sheet{visibility:hidden;transform:translateY(calc(100% + 60px));transition:transform .28s cubic-bezier(.2,.8,.2,1),visibility 0s linear .28s}
+.sheet.on{visibility:visible;transform:none;transition:transform .28s cubic-bezier(.2,.8,.2,1),visibility 0s}
 .grab{width:38px;height:5px;border-radius:9px;background:var(--line);margin:4px auto 12px}
 .sheet h3{margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em}
 .sub{font-size:14px;font-weight:600;color:var(--muted)}
@@ -184,7 +186,7 @@ textarea{min-height:64px;resize:vertical}
   var ICON_BARS = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 7h13M4 12h9M8 17h12"/></svg>';
 
   function $(id) { return document.getElementById(id); }
-  var scroller = $('scroller'), weeksEl = $('weeks'), sheet = $('sheet'), scrim = $('scrim'), menu = $('menu');
+  var scroller = document.scrollingElement || document.documentElement, weeksEl = $('weeks'), sheet = $('sheet'), scrim = $('scrim'), menu = $('menu');
 
   var events = [];
   var prefs = { compact: false, dow: true, wknd: false };
@@ -298,7 +300,7 @@ textarea{min-height:64px;resize:vertical}
     weeksEl.innerHTML = h.join('');
   }
 
-  function topEdge() { return prefs.dow ? (scroller.querySelector('.dow').getBoundingClientRect().bottom) : 0; }
+  function topEdge() { return prefs.dow ? (document.querySelector('.dow').getBoundingClientRect().bottom) : 0; }
   function renderKeep() {
     var anchor = null, top = topEdge();
     var ws = weeksEl.querySelectorAll('.week');
@@ -313,18 +315,18 @@ textarea{min-height:64px;resize:vertical}
     var el = weeksEl.querySelector('.day.today');
     if (!el) { range = { from: -2, to: 6 }; render(); el = weeksEl.querySelector('.day.today'); }
     if (!el) return;
-    var y = el.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - topEdge() - 70;
-    if (smooth) scroller.scrollTo({ top: y, behavior: 'smooth' }); else scroller.scrollTop = y;
+    var y = el.getBoundingClientRect().top + scroller.scrollTop - topEdge() - 70;
+    if (smooth) window.scrollTo({ top: y, behavior: 'smooth' }); else window.scrollTo(0, y);
   }
 
   var busy = false;
-  scroller.addEventListener('scroll', function () {
+  window.addEventListener('scroll', function () {
     if (busy) return;
     var st = scroller.scrollTop;
     if (st < 500) {
       busy = true; range.from -= 3; renderKeep();
       setTimeout(function () { busy = false; }, 80);
-    } else if (scroller.scrollHeight - st - scroller.clientHeight < 700) {
+    } else if (scroller.scrollHeight - st - window.innerHeight < 700) {
       busy = true; range.to += 3; renderKeep();
       setTimeout(function () { busy = false; }, 80);
     }
