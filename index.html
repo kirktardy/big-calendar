@@ -137,6 +137,15 @@ textarea{min-height:64px;resize:vertical}
 .setup p{margin:0;color:var(--muted);font-size:16px;line-height:1.4}
 .setup textarea{width:100%;min-height:110px;border:0;border-radius:16px;background:var(--field);padding:14px;font:15px ui-monospace,Menlo,monospace;resize:none}
 .setup .err{color:#dc2626;font-weight:600;min-height:20px}
+@media (min-width:560px){
+:root{--colL:calc(50% - 240px)}
+body{background:color-mix(in srgb,var(--bg) 92%,#000)}
+#scroller{left:var(--colL);right:var(--colL);background:var(--bg);box-shadow:0 0 0 .5px var(--line),0 24px 80px rgba(0,0,0,.12)}
+.ctrl{left:calc(var(--colL) + 20px);right:calc(var(--colL) + 20px)}
+.menu{left:calc(var(--colL) + 20px)}
+.sheet{left:calc(var(--colL) + 8px);right:calc(var(--colL) + 8px);max-width:none}
+.setup{left:var(--colL);right:var(--colL)}
+}
 </style>
 </head>
 <body>
