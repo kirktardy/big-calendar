@@ -256,9 +256,16 @@ textarea{min-height:64px;resize:vertical}
       segs.forEach(function (sg) {
         sg.left = (sg.a - ws) * colW + 3;
         sg.barW = (sg.b - sg.a + 1) * colW - 6;
-        sg.visW = Math.min(Math.max(sg.barW, textW(sg.x.t)), width - sg.left - 2);
-        var visEnd = ws + Math.min(6, Math.floor((sg.left + sg.visW + 3) / colW));
-        var L = 0; while (laneEnd[L] != null && laneEnd[L] >= sg.a) L++;
+        var tw = textW(sg.x.t), roomR = width - sg.left - 2;
+        sg.barLeft = sg.left; sg.flip = false;
+        if (tw > sg.barW && tw > roomR) {
+          var right = sg.left + sg.barW, roomL = right - 2;
+          if (roomL > roomR) { sg.flip = true; sg.visW = Math.min(tw, roomL); sg.left = right - sg.visW; }
+          else sg.visW = roomR;
+        } else sg.visW = Math.min(Math.max(sg.barW, tw), roomR);
+        var visStart = sg.flip ? ws + Math.max(0, Math.floor((sg.left - 3) / colW)) : sg.a;
+        var visEnd = sg.flip ? sg.b : ws + Math.min(6, Math.floor((sg.left + sg.visW + 3) / colW));
+        var L = 0; while (laneEnd[L] != null && laneEnd[L] >= visStart) L++;
         laneEnd[L] = Math.max(sg.b, visEnd); sg.L = L; used = Math.max(used, L + 1);
       });
       var maxDots = 0, cells = '';
@@ -279,7 +286,7 @@ textarea{min-height:64px;resize:vertical}
         segs.forEach(function (sg) {
           var col = sg.x.c, bw = Math.round(sg.barW), vw = Math.round(sg.visW);
           bars += '<div class="bar' + (sg.x.e < today ? ' old' : '') + '" style="left:' + Math.round(sg.left) + 'px;width:' + vw + 'px;top:' + (sg.L * LANE) + 'px;background:' + col + '1c">' +
-            '<span style="color:' + ink(col) + '" class="bt">' + esc(sg.x.t) + '</span><i style="width:' + bw + 'px;background:' + col + '"></i></div>';
+            '<span style="color:' + ink(col) + (sg.flip ? ';text-align:right' : '') + '" class="bt">' + esc(sg.x.t) + '</span><i style="left:' + Math.round(sg.barLeft - sg.left) + 'px;width:' + bw + 'px;background:' + col + '"></i></div>';
         });
       }
       var perLine = Math.max(1, Math.floor((colW - 10 + 3) / 10));
